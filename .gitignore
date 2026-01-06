@@ -1,0 +1,9 @@
+letsencrypt/
+nginx/certbot/
+scripts/.uploaded-files.json
+node_modules
+backups/*
+!backups/.gitkeep
+.DS_Store
+scripts/validation-errors.log
+.env

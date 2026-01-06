@@ -1,0 +1,24 @@
+{
+    "cSpell.words": [
+        "CDSHOOKS",
+        "certbot",
+        "certonly",
+        "envsubst",
+        "fullchain",
+        "hapi",
+        "hapiproject",
+        "healthcheck",
+        "isready",
+        "jdbc",
+        "LASTN",
+        "letsencrypt",
+        "MILLIS",
+        "PGPASSWORD",
+        "privkey",
+        "psql",
+        "referer",
+        "RESTHOOK",
+        "tmpl",
+        "webroot"
+    ]
+}

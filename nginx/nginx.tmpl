@@ -1,0 +1,66 @@
+worker_processes auto;
+error_log /var/log/nginx/error.log warn;
+events {
+    worker_connections 1024;
+}
+
+http {
+    log_format main '$remote_addr - $remote_user [$time_local] "$request" '
+                  '$status $body_bytes_sent "$http_referer" '
+                  '"$http_user_agent" "$http_x_forwarded_for"';
+    access_log /var/log/nginx/access.log main;
+
+    upstream hapi {
+        server hapi-fhir:${HAPI_SERVER_PORT};
+    }
+
+    server {
+        listen ${NGINX_HTTP_PORT};
+        server_name ${LETSENCRYPT_DOMAIN};
+
+        location /.well-known/acme-challenge/ {
+            root /var/www/certbot;
+            default_type "text/plain";
+            try_files $uri =404;
+        }
+
+        location / {
+            return 301 https://${host}:${PORT}$request_uri;
+        }
+    }
+
+    server {
+        listen ${PORT} ssl http2;
+        server_name ${LETSENCRYPT_DOMAIN};
+
+        ssl_certificate ${SSL_CERT_PATH};
+        ssl_certificate_key ${SSL_KEY_PATH};
+        ssl_protocols TLSv1.2 TLSv1.3;
+        ssl_prefer_server_ciphers on;
+        client_max_body_size ${NGINX_MAX_BODY_SIZE};
+
+        location /.well-known/acme-challenge/ {
+            root /var/www/certbot;
+            default_type "text/plain";
+            try_files $uri =404;
+        }
+
+        proxy_cache_bypass $http_upgrade;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto https;
+        proxy_set_header X-Forwarded-Host $host;
+
+        location / {
+            proxy_pass http://hapi/fhir$request_uri;
+            proxy_http_version 1.1;
+            proxy_set_header Upgrade $http_upgrade;
+            proxy_set_header Connection "upgrade";
+            proxy_connect_timeout 300s; # Time to establish connection with upstream (HAPI)
+            proxy_send_timeout 300s;    # Time between two write operations to upstream
+            proxy_read_timeout 300s;    # Time between two read operations from upstream
+            send_timeout 300s;          # Time between two write operations to client
+        }
+    }
+}
