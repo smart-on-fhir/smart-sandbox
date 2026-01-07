@@ -7,7 +7,9 @@ This workspace hosts a Docker Compose stack with:
 
 - A [HAPI FHIR](https://hapifhir.io/) JPA server image behind a proxy.
 - A Postgres database.
-- An Nginx TLS proxy that front-ends HAPI (HTTP traffic on port 80 redirects to HTTPS). The proxy starts with a self-signed certificate (in `nginx/certs`) and switches to a Let’s Encrypt chain once obtained using a helper script.
+- An Nginx TLS proxy that front-ends HAPI (HTTP traffic on port 80 redirects to HTTPS).
+  The proxy starts with a self-signed certificate (in `nginx/certs`) and switches to a
+  Let’s Encrypt chain once obtained using a helper script.
 
 ### Quick start
 
@@ -37,8 +39,10 @@ with your environment are:
 - `POSTGRES_USER` - database username.
 - `POSTGRES_PASSWORD` - database password.
 - `POSTGRES_DB` - database schema name.
-- `HOST` - hostname or IP address where the stack is accessible (e.g., `localhost` or a public IP or domain name).
-- `PORT` - external port for HTTPS traffic (use `443` on real servers, or something else like `8443` for local testing).
+- `HOST` - hostname or IP address where the stack is accessible (e.g., `localhost`
+  or a public IP or domain name).
+- `PORT` - external port for HTTPS traffic (use `443` on real servers, or something
+  else like `8443` for local testing).
 
 
  
@@ -86,15 +90,25 @@ node ./scripts/uploadPatients.js
 ```
 
 
-This script tries to upload all JSON files in the `seed-data` directory to the HAPI FHIR server. It tracks already-uploaded files in `.uploaded-files.json` to avoid duplicates.
-This means that if it fails midway, you can fix the issue and rerun it without re-uploading everything. It also means that to re-upload everything, you need to delete `.uploaded-files.json` first, or you can just pass a `--reset` argument.
+This script tries to upload all JSON files in the `seed-data` directory to the
+HAPI FHIR server. It tracks already-uploaded files in `.uploaded-files.json` to
+avoid duplicates. This means that if it fails midway, you can fix the issue and
+rerun it without re-uploading everything. It also means that to re-upload everything,
+you need to delete `.uploaded-files.json` first, or you can just pass a `--reset` argument.
 
 ### Adding New Data
-You can add new data files to the `seed-data` directory at any time. When you run the upload script again, it will only upload the new files that haven't been uploaded yet, based on the tracking in `.uploaded-files.json`. This allows you to incrementally add data without re-uploading existing files.
+You can add new data files to the `seed-data` directory at any time. When you
+run the upload script again, it will only upload the new files that haven't been
+uploaded yet, based on the tracking in `.uploaded-files.json`. This allows you to
+incrementally add data without re-uploading existing files.
 
 
 ### Nightly reset workflow
-Every time data is uploaded, even if it wasn't the complete set, a snapshot of the Postgres data directory is created and stored as `postgres-data-backup.tar.gz` in the project root. This snapshot can be restored later to return the database to this state. When a nightly reset is performed (automatically or manually), the following steps occur:
+Every time data is uploaded, even if it wasn't the complete set, a snapshot of the
+Postgres data directory is created and stored as `postgres-data-backup.tar.gz` in
+the project root. This snapshot can be restored later to return the database to
+this state. When a nightly reset is performed (automatically or manually), the
+following steps occur:
 
 1. The `postgres-data-backup.tar.gz` snapshot is extracted into new directory on the host machine.
 2. New containers are created for Postgres and HAPI, ensuring a clean environment.
