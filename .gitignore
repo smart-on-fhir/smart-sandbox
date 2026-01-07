@@ -7,3 +7,4 @@ backups/*
 .DS_Store
 scripts/validation-errors.log
 .env
+.anchorDate

@@ -79,7 +79,7 @@ async function confirm(question, defaultYes = false) {
 async function select(question, options) {
   console.log(`\n${color('cyan', question)}\n`);
   options.forEach((opt, i) => {
-    console.log(`  ${color('bright', i + 1)}. ${opt.label}`);
+    console.log(`  ${color('bright', (i + 1).toString().padStart(3))}. ${opt.label}`);
   });
   console.log();
 
@@ -403,6 +403,22 @@ async function actionValidateBundles() {
   }
 }
 
+async function shiftDates() {
+  console.log(`\n${color('cyan', '⏱️  Shift Dates')}\n`);
+  console.log('This will update all dates in the seed-data directory and shift them forward to maintain patient ages.\n');
+
+  if (!await confirm('Continue?', true)) {
+    console.log('Cancelled.');
+    return;
+  }
+
+  try {
+    await runScript(path.join(__dirname, 'timeShift.js'));
+  } catch (err) {
+    console.error(color('red', '\nShift dates failed:'), err + '');
+  }
+}
+
 // ===== MAIN MENU =====
 
 async function mainMenu() {
@@ -422,6 +438,7 @@ async function mainMenu() {
     { label: '⚠️   Reset server (delete all data)\n', action: actionResetServer },
     { label: '✅  Validate and fix bundles\n', action: actionValidateBundles },
     { label: '🐳  Manage containers\n', action: actionManageContainers },
+    { label: '⏱️   Shift Dates\n', action: shiftDates },
     { label: '❌  Exit', action: null },
   ];
 
