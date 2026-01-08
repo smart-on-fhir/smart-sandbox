@@ -1,7 +1,8 @@
-const FS       = require("fs");
-const Path     = require("path");
-const moment   = require("moment");
-const { DATA_DIR } = require("./config");
+const FS              = require("fs");
+const Path            = require("path");
+const moment          = require("moment");
+const { DATA_DIR }    = require("./config");
+const { forEachFile } = require("./lib");
 
 
 /**
@@ -273,50 +274,6 @@ function shiftDatesInText(input, amount, units) {
 }
 
 /**
- * Walk a directory recursively and find files that match the @filter if its a
- * RegExp, or for which @filter returns true if its a function.
- * @param {string} dir Path to directory
- * @param {object} [options={}] Options to control the behavior
- * @param {boolean} [options.recursive]
- * @param {RegExp|((path:string) => boolean)} [options.filter]
- * @returns {IterableIterator<String>}
- */
-function* readDir(dir, options = {}) {
-    const files = FS.readdirSync(dir);
-    for (const file of files) {
-        const pathToFile = Path.join(dir, file);
-        const isDirectory = FS.statSync(pathToFile).isDirectory();
-        if (isDirectory) {
-            if (options.recursive === false) {
-                continue;
-            }
-            yield *readDir(pathToFile, options);
-        } else {
-            if (options.filter instanceof RegExp && !options.filter.test(file)) {
-                continue;
-            }
-            if (typeof options.filter == "function" && !options.filter(file)) {
-                continue;
-            }
-            yield pathToFile;
-        }
-    }
-}
-
-/**
- * Calls the callback for each file in the given directory
- * @param {string} inputDir 
- * @param {function(string, string): void} callback 
- */
-function forEachFile(inputDir, callback) {
-    const dirPath = Path.resolve(inputDir);
-    const files = readDir(dirPath, { recursive: true, filter: /\.json$/ });
-    for (const file of files) {
-        callback(FS.readFileSync(file, "utf8"), file);
-    }
-}
-
-/**
  * Determines the date format for the given FHIR date-like input value
  * @param {string} input 
  * @returns {string}
@@ -522,7 +479,7 @@ function shift(options)
         }
     }
 
-    forEachFile(Path.resolve(options.inputDir), processFile);
+    forEachFile(Path.resolve(options.inputDir), processFile, { recursive: true, filter: /\.json$/ });
 
     console.log(`Shifted ${Number(transforms).toLocaleString("en-US")} dates in ${Math.round((Date.now() - startTime)/1000)} seconds`);
 };

@@ -20,7 +20,8 @@ const path = require('path');
 
 const ROOT_DIR           = path.join(__dirname, '..');
 const UPLOAD_LOG_FILE    = path.join(ROOT_DIR, "scripts", ".uploaded-files.json");
-const DATA_DIR           = path.join(ROOT_DIR, "seed-data", "R4", "SYNTHEA");
+const DATA_SRC_DIR       = path.join(ROOT_DIR, "seed-data", "R4", "SYNTHEA");
+const DATA_DIR           = path.join(ROOT_DIR, "data");
 const HAPI_FHIR_BASE_URL = `https://${process.env.HOST}:${process.env.PORT}`;
 
 
@@ -28,5 +29,6 @@ module.exports = {
     ROOT_DIR,
     HAPI_FHIR_BASE_URL,
     UPLOAD_LOG_FILE,
+    DATA_SRC_DIR,
     DATA_DIR
 };

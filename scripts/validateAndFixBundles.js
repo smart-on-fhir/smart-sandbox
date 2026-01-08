@@ -1,5 +1,6 @@
-const fs = require('fs');
-const path = require('path');
+const fs          = require('fs');
+const path        = require('path');
+const { readDir } = require('./lib');
 const { DATA_DIR, HAPI_FHIR_BASE_URL } = require('./config');
 
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
@@ -10,7 +11,7 @@ const HEADERS = { "Content-Type": "application/fhir+json" };
 // Directories
 const INPUT_DIR  = DATA_DIR;
 const OUTPUT_DIR = DATA_DIR;
-const LOG_FILE   = path.join(__dirname, "validation-errors.log");
+const LOG_FILE   = path.join(__dirname, "../logs/validation-errors.log");
 
 // Ensure output directory exists
 if (!fs.existsSync(OUTPUT_DIR)) {
@@ -23,10 +24,11 @@ if (!fs.existsSync(OUTPUT_DIR)) {
  * @returns {Promise<fhir4.OperationOutcome>} - The validation result
  */
 async function validateBundle(bundle) {
+
     const response = await fetch(`${HAPI_FHIR_BASE_URL}/Bundle/$validate`, {
-        method: "POST",
+        method : "POST",
         headers: HEADERS,
-        body: JSON.stringify(bundle),
+        body   : JSON.stringify(bundle),
     });
 
     if (!response.ok) {
@@ -83,21 +85,23 @@ function fixBundle(bundle, validationResult) {
  * Process all bundles in the input directory
  */
 async function processBundles() {
-    const files = fs.readdirSync(INPUT_DIR).filter((file) => file.endsWith(".json"));
+    console.log(`\nProcessing bundles in ${INPUT_DIR}...\n`);
+
+    const entries = readDir(INPUT_DIR, { recursive: true, filter: /\.json$/ });
     const logStream = fs.createWriteStream(LOG_FILE, { flags: "w" });
 
-    // let skip = true;
-
-    for (const file of files) {
+    for (const file of entries) {
         console.log(`Processing ${file}...`);
-        // if (file === 'Laticia_Dibbert_b23f172c-8c92-4757-87a8-7f64c13639d3.json') {
-        //     skip = false
-        // }
-        // if (skip) {
-        //     continue;
-        // }
-        const filePath = path.join(INPUT_DIR, file);
-        const bundle = JSON.parse(fs.readFileSync(filePath, "utf8"));
+
+        const relativePath   = path.relative(INPUT_DIR, file);
+        const outputFilePath = path.join(OUTPUT_DIR, relativePath);
+        
+        const outputDir = path.dirname(outputFilePath);
+        if (!fs.existsSync(outputDir)) {
+            fs.mkdirSync(outputDir, { recursive: true });
+        }
+
+        const bundle = JSON.parse(fs.readFileSync(file, "utf8"));
 
         try {
             const validationResult = await validateBundle(bundle);
@@ -108,25 +112,23 @@ async function processBundles() {
             );
 
             if (validationResult.issue && validationResult.issue.length > 0) {
-                logStream.write(`Validation issues for ${file}:\n`);
+                logStream.write(`    Validation issues for ${relativePath}:\n`);
                 validationResult.issue.forEach((issue) => {
-                    logStream.write(`- ${issue.severity}: ${issue.diagnostics}\n`);
+                    logStream.write(`    - ${issue.severity}: ${issue.diagnostics}\n`);
                 });
 
                 // Attempt to fix the bundle
                 const fixedBundle = fixBundle(bundle, validationResult);
-                const outputFilePath = path.join(OUTPUT_DIR, file);
                 fs.writeFileSync(outputFilePath, JSON.stringify(fixedBundle, null, 4));
-                console.log(`Fixed and saved: ${file}`);
+                console.log(`    Fixed and saved: ${outputFilePath}`);
             } else {
-                console.log(`No issues found: ${file}`);
-                const outputFilePath = path.join(OUTPUT_DIR, file);
+                console.log(`    No issues found`);
                 fs.writeFileSync(outputFilePath, JSON.stringify(bundle, null, 4));
             }
         } catch (error) {
             const errorMessage = error instanceof Error ? error.message : String(error);
-            console.error(`Failed to process ${file}: ${errorMessage}`);
-            logStream.write(`Failed to process ${file}: ${errorMessage}\n`);
+            console.error(`    Failed to process ${relativePath}: ${errorMessage}`);
+            logStream.write(`    Failed to process ${relativePath}: ${errorMessage}\n`);
         }
     }
 

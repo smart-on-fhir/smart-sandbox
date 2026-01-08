@@ -111,6 +111,54 @@ function findPostgresVolume() {
     throw new Error('docker volume for postgres not found. Available volumes: ' + vols.join(', '));
 }
 
+/**
+ * Walk a directory recursively and find files that match the @filter if its a
+ * RegExp, or for which @filter returns true if its a function.
+ * @param {string} dir Path to directory
+ * @param {object} [options={}] Options to control the behavior
+ * @param {boolean} [options.recursive]
+ * @param {RegExp|((path:string) => boolean)} [options.filter]
+ * @returns {IterableIterator<String>}
+ */
+function* readDir(dir, options = {}) {
+    const files = fs.readdirSync(dir);
+    for (const file of files) {
+        const pathToFile = path.join(dir, file);
+        const isDirectory = fs.statSync(pathToFile).isDirectory();
+        if (isDirectory) {
+            if (options.recursive === false) {
+                continue;
+            }
+            yield *readDir(pathToFile, options);
+        } else {
+            if (options.filter instanceof RegExp && !options.filter.test(file)) {
+                continue;
+            }
+            if (typeof options.filter == "function" && !options.filter(file)) {
+                continue;
+            }
+            yield pathToFile;
+        }
+    }
+}
+
+/**
+ * Calls the callback for each file in the given directory
+ * @param {string} inputDir 
+ * @param {function(string, string): void} callback 
+ * @param {object} [options={}] Options to control the behavior
+ * @param {boolean} [options.recursive]
+ * @param {RegExp|((path:string) => boolean)} [options.filter]
+ */
+function forEachFile(inputDir, callback, options = {}) {
+    const dirPath = path.resolve(inputDir);
+    const files = readDir(dirPath, options);
+    for (const file of files) {
+        callback(fs.readFileSync(file, "utf8"), file);
+    }
+}
+
+
 module.exports = {
     clearUploadLog,
     hapiIsRunning,
@@ -118,4 +166,6 @@ module.exports = {
     findPostgresVolume,
     sleep,
     run,
+    readDir,
+    forEachFile
 };

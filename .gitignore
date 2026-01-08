@@ -8,3 +8,11 @@ backups/*
 scripts/validation-errors.log
 .env
 .anchorDate
+
+# Ignore all log files, except .gitkeep so that the folder is kept in git 
+logs/*
+!logs/.gitkeep
+
+# Ignore all files in /data, except .gitkeep so that the folder is kept in git 
+data/*
+!data/.gitkeep
