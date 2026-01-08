@@ -1,5 +1,5 @@
-const fs   = require('fs');
-const path = require('path');
+const fs          = require('fs');
+const { readDir } = require('./lib');
 const {
     DATA_DIR,
     UPLOAD_LOG_FILE,
@@ -104,7 +104,7 @@ async function sendBundle(bundle) {
 // Main function to process files
 async function main() {
 
-    const files = fs.readdirSync(DATA_DIR).filter(file => file.endsWith(".json"));
+    const files = Array.from(readDir(DATA_DIR, { recursive: true, filter: /\.json$/ }));
     
     // Load previously uploaded files
     const uploadedFiles = loadUploadedFiles();
@@ -126,7 +126,7 @@ async function main() {
 
     for (const file of pendingFiles) {
         console.log(`${++index} of ${pendingFiles.length}: Loading file ${file} ...`);
-        const bundle = JSON.parse(fs.readFileSync(path.join(DATA_DIR, file), 'utf8'));
+        const bundle = JSON.parse(fs.readFileSync(file, 'utf8'));
         const success = await sendBundle(bundle);
         
         if (success) {
