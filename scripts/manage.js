@@ -405,7 +405,7 @@ async function actionValidateBundles() {
 
 async function shiftDates() {
   console.log(`\n${color('cyan', '⏱️  Shift Dates')}\n`);
-  console.log('This will update all dates in the seed-data directory and shift them forward to maintain patient ages.\n');
+  console.log('This will update all dates in the data directory and shift them forward to maintain patient ages.\n');
 
   if (!await confirm('Continue?', true)) {
     console.log('Cancelled.');

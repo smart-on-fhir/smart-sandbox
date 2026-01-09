@@ -485,34 +485,6 @@ function shift(options)
 };
 
 /**
- * Looks for a file named ".anchorDate" in the given directory and reads
- * the anchor date from it. If the file does not exist, exits with an error.
- * @param {string} inputDir 
- * @returns {import("moment").Moment} The anchor date
- */
-function getAnchorDate(inputDir) {
-    const anchorFile = Path.join(inputDir, ".anchorDate");
-    if (!FS.existsSync(anchorFile)) {
-        console.error(
-            `Error: Anchor date file ".anchorDate" not found in data directory "${
-            inputDir}". Please create the file and put the anchor date in ` +
-            `"YYYY-MM-DD" format in it specifying when the data was generated.`
-        );
-        process.exit(1);
-    }
-    const anchorDateStr = FS.readFileSync(anchorFile, "utf8").trim();
-    const anchorDate = moment.utc(anchorDateStr, "YYYY-MM-DD", true);
-    if (!anchorDate.isValid()) {
-        console.error(
-            `Error: Invalid anchor date "${anchorDateStr}" in file "${anchorFile
-            }". Expected format is "YYYY-MM-DD".`
-        );
-        process.exit(1);
-    }
-    return anchorDate;
-}
-
-/**
  * 
  * @param {string} inputDir 
  * @param {string} dateStr 
@@ -523,19 +495,57 @@ function setAnchorDate(inputDir, dateStr) {
     console.log(`Anchor date set to ${dateStr} in file "${anchorFile}"`);
 }
 
-const anchorDate = getAnchorDate(DATA_DIR);
-const diff = moment().utc().diff(moment(anchorDate).utc(), 'days');
-if (diff === 0) {
-    console.log("No time shift needed, exiting.");
-    process.exit(0);
+
+/**
+ * Recursively walk the data directory to find all subdirectories. This means
+ * that if we have data for multiple FHIR versions, we will process each
+ * version separately. It also means we can't have data directly under DATA_DIR,
+ * but should always have at least one subdirectory.
+ * @param {string} dir 
+ */
+function walkDir(dir = DATA_DIR) {
+    const files = FS.readdirSync(dir);
+    for (const file of files) {
+        const fullPath    = Path.join(dir, file);
+        const isDirectory = FS.statSync(fullPath).isDirectory();
+        if (isDirectory) {
+
+            const anchorFile = Path.join(fullPath, ".anchorDate");
+            if (FS.existsSync(anchorFile)) {
+                console.log(`Found anchor date file: ${anchorFile}`);
+                const anchorDateStr = FS.readFileSync(anchorFile, "utf8").trim();
+                const anchorDate = moment.utc(anchorDateStr, "YYYY-MM-DD", true);
+                if (!anchorDate.isValid()) {
+                    console.error(
+                        `Error: Invalid anchor date "${anchorDateStr}" in file "${anchorFile
+                        }". Expected format is "YYYY-MM-DD".`
+                    );
+                    process.exit(1);
+                }
+                
+                const diff = moment().utc().diff(moment(anchorDate).utc(), 'days');
+                if (diff === 0) {
+                    console.log("No time shift needed for %s.", fullPath);
+                    return walkDir(fullPath);
+                }
+
+                console.log(`Shifting all dates by ${diff} days to maintain patient ages (anchor date: ${anchorDate})\n`);
+                shift({
+                    inputDir   : fullPath,
+                    outputDir  : fullPath,
+                    shiftAmount: diff,
+                    shiftUnits : 'days',
+                    verbose    : false
+                });
+                setAnchorDate(fullPath, moment().utc().format("YYYY-MM-DD"));
+
+            } else {
+                console.log(`No anchor date file found in: ${fullPath}`);
+            }
+            walkDir(fullPath);
+        }
+    }
 }
 
-console.log(`Shifting all dates by ${diff} days to maintain patient ages (anchor date: ${anchorDate})\n`);
-shift({
-    inputDir   : DATA_DIR,
-    outputDir  : DATA_DIR,
-    shiftAmount: diff,
-    shiftUnits : 'days',
-    verbose    : false
-});
-setAnchorDate(DATA_DIR, moment().utc().format("YYYY-MM-DD"));
+// Recursively walk the data directory to try shifting all subdirectories
+walkDir();
