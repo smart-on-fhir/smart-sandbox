@@ -25,10 +25,10 @@ try {
 // use docker run to mount volume and create tarball
 const shellScript = [
   `set -e`,
-  `echo '--- /data contents ---'`,
-  `ls -la /data`,
+  // `echo '--- /data contents ---'`,
+  // `ls -la /data`,
   `tar -czf /backup/${filename} -C /data .`,
-  `echo '--- /backup contents ---'`,
+  `echo 'backup created:'`,
   `ls -lh /backup/${filename}`
 ].join(' && ');
 const cmd = `docker run --rm -v "${volumeName}:/data:ro" -v "${backupsDir}:/backup" alpine:3.18 sh -c "${shellScript}"`;
