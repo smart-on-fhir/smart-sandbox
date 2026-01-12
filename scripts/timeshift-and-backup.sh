@@ -12,4 +12,4 @@ mkdir -p "$(dirname "$LOG")"
 
 cd "$PROJECT_ROOT"
 
-node ./scripts/timeShift.js >> "$LOG" 2>&1 && node ./scripts/makeBackup.js >> "$LOG" 2>&1
+node ./scripts/timeShift.js >> "$LOG" 2>&1 && node ./scripts/makeBackup.js timeshift >> "$LOG" 2>&1

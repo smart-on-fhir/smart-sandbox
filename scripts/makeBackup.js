@@ -3,30 +3,32 @@ const fs                     = require('fs');
 const path                   = require('path');
 const { findPostgresVolume } = require('./lib');
 
+const prefix = process.argv[2] || '';
+
+
 const root = path.resolve(__dirname, '..');
 const backupsDir = path.join(root, 'backups');
 if (!fs.existsSync(backupsDir)) fs.mkdirSync(backupsDir, { recursive: true });
 
-const ts = new Date().toISOString().replace(/[:.]/g, '-');
-const filename = `postgres_backup_${ts}.tar.gz`;
-const outPath = path.join(backupsDir, filename);
+const ts       = new Date().toISOString().replace(/[:.]/g, '-');
+const filename = `${prefix ? prefix + '_' : ''}postgres_backup_${ts}.tar.gz`;
+const outPath  = path.join(backupsDir, filename);
 
 console.log('Creating backup:', filename);
 
 let volumeName;
 try {
-  volumeName = findPostgresVolume();
-  console.log('Using docker volume:', volumeName);
+    volumeName = findPostgresVolume();
+    console.log('Using docker volume:', volumeName);
 } catch (err) {
-  console.error(err);
-  process.exit(1);
+    console.error(err);
+    process.exit(1);
 }
 
 // use docker run to mount volume and create tarball
 const shellScript = [
   `set -e`,
-  // `echo '--- /data contents ---'`,
-  // `ls -la /data`,
+  `echo 'Creating backup...'`,
   `tar -czf /backup/${filename} -C /data .`,
   `echo 'backup created:'`,
   `ls -lh /backup/${filename}`
