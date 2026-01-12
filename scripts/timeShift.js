@@ -502,14 +502,15 @@ function setAnchorDate(inputDir, dateStr) {
  * version separately. It also means we can't have data directly under DATA_DIR,
  * but should always have at least one subdirectory.
  * @param {string} dir 
+ * @returns {number}
  */
 function walkDir(dir = DATA_DIR) {
+    let result = 0;
     const files = FS.readdirSync(dir);
     for (const file of files) {
         const fullPath    = Path.join(dir, file);
         const isDirectory = FS.statSync(fullPath).isDirectory();
         if (isDirectory) {
-
             const anchorFile = Path.join(fullPath, ".anchorDate");
             if (FS.existsSync(anchorFile)) {
                 console.log(`Found anchor date file: ${anchorFile}`);
@@ -520,7 +521,7 @@ function walkDir(dir = DATA_DIR) {
                         `Error: Invalid anchor date "${anchorDateStr}" in file "${anchorFile
                         }". Expected format is "YYYY-MM-DD".`
                     );
-                    process.exit(1);
+                    return 0;
                 }
                 
                 const diff = moment().utc().diff(moment(anchorDate).utc(), 'days');
@@ -538,14 +539,21 @@ function walkDir(dir = DATA_DIR) {
                     verbose    : false
                 });
                 setAnchorDate(fullPath, moment().utc().format("YYYY-MM-DD"));
+                result += 1;
 
             } else {
                 console.log(`No anchor date file found in: ${fullPath}`);
             }
-            walkDir(fullPath);
+            result += walkDir(fullPath);
         }
     }
+    return result;
 }
 
 // Recursively walk the data directory to try shifting all subdirectories
-walkDir();
+const shifts = walkDir();
+
+console.log(`Time shift complete. ${shifts} dataset(s) processed.`);
+
+// If nothing was shifted, exit with error code so that piped commands can catch it
+process.exit(shifts ? 0 : 1);
