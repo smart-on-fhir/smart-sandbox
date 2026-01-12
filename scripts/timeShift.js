@@ -550,6 +550,12 @@ function walkDir(dir = DATA_DIR) {
     return result;
 }
 
+console.log();
+console.log('-----------------------------------------------------');
+console.log(`${new Date().toISOString()} Starting time shift in data dir: ${DATA_DIR}`);
+console.log('-----------------------------------------------------');
+console.log();
+
 // Recursively walk the data directory to try shifting all subdirectories
 const shifts = walkDir();
 
